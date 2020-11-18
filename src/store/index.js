@@ -7,12 +7,14 @@ Vue.use(Vuex);
 
 const LOADING = "ROOT_LOADING",
   LOADED = "ROOT_LOADED",
-  SET_USER = "SET_USER";
+  SET_USER = "SET_USER",
+  SET_FRIENDS = "SET_FRIENDS";
 
 export default new Vuex.Store({
   state: {
     loading: false,
-    user: JSON.parse(localStorage.getItem("currentUser")) ?? null
+    user: JSON.parse(localStorage.getItem("currentUser")) ?? null,
+    friends: []
   },
   mutations: {
     [LOADING](state) {
@@ -29,6 +31,9 @@ export default new Vuex.Store({
         state.user = null;
         localStorage.removeItem("currentUser");
       }
+    },
+    [SET_FRIENDS](state, friends) {
+      state.friends = friends || [];
     }
   },
   actions: {
@@ -47,6 +52,12 @@ export default new Vuex.Store({
     async logout({ commit }) {
       commit(LOADING);
       commit(SET_USER, null);
+      commit(LOADED);
+    },
+    async loadFriends({ commit }) {
+      commit(LOADING);
+      const { users: friends } = await api.getUsers();
+      commit(SET_FRIENDS, friends);
       commit(LOADED);
     }
   }
