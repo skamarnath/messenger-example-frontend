@@ -1,18 +1,43 @@
 <template>
-  <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
-  </div>
+  <app-layout>
+    <template v-slot:header-actions>
+      <v-avatar color="indigo" size="36">
+        <span class="white--text headline">{{
+          loading ? ".." : user.nickname.slice(0, 2)
+        }}</span>
+      </v-avatar>
+      <v-btn
+        :loading="loading"
+        :disabled="loading"
+        color="blue-grey"
+        class="ma-2 white--text"
+        icon
+        @click="handleLogout"
+      >
+        <v-icon dark>
+          mdi-logout
+        </v-icon>
+      </v-btn>
+    </template>
+  </app-layout>
 </template>
 
 <script>
-// @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import AppLayout from "../components/AppLayout.vue";
+import { mapActions, mapState } from "vuex";
 
 export default {
-  name: 'Home',
-  components: {
-    HelloWorld
-  }
-}
+  components: { AppLayout },
+  computed: {
+    ...mapState(["user", "loading"])
+  },
+  methods: {
+    ...mapActions(["logout"]),
+    handleLogout() {
+      this.logout();
+      this.$router.push("/login");
+    }
+  },
+  name: "Home"
+};
 </script>
