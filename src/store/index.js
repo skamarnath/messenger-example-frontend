@@ -8,13 +8,18 @@ Vue.use(Vuex);
 const LOADING = "ROOT_LOADING",
   LOADED = "ROOT_LOADED",
   SET_USER = "SET_USER",
-  SET_FRIENDS = "SET_FRIENDS";
+  SET_FRIENDS = "SET_FRIENDS",
+  SET_MESSAGES = "SET_MESSAGES",
+  SET_CURRENT_FRIEND = "SET_CURRENT_FRIEND",
+  CLEAR_MESSAGES = "CLEAR_MESSAGES";
 
 export default new Vuex.Store({
   state: {
     loading: false,
     user: JSON.parse(localStorage.getItem("currentUser")) ?? null,
-    friends: []
+    friends: [],
+    messages: null,
+    currentFriend: null
   },
   mutations: {
     [LOADING](state) {
@@ -34,6 +39,15 @@ export default new Vuex.Store({
     },
     [SET_FRIENDS](state, friends) {
       state.friends = friends || [];
+    },
+    [SET_MESSAGES](state, messages) {
+      state.messages = messages;
+    },
+    [CLEAR_MESSAGES](state, messages) {
+      state.messages = null;
+    },
+    [SET_CURRENT_FRIEND](state, currentFriend) {
+      state.currentFriend = currentFriend;
     }
   },
   actions: {
@@ -59,6 +73,29 @@ export default new Vuex.Store({
       const { users: friends } = await api.getUsers();
       commit(SET_FRIENDS, friends);
       commit(LOADED);
+    },
+    async loadMessages({ commit }, currentFriend) {
+      commit(CLEAR_MESSAGES);
+      commit(SET_CURRENT_FRIEND, currentFriend);
+      commit(LOADING);
+      const { messages } = await api.getMessages(currentFriend.id);
+      commit(SET_MESSAGES, messages);
+      commit(LOADED);
+    },
+    addMessage({ commit, state }, { from: fromId, to: toId, message }) {
+      if (fromId == state.currentFriend.id || toId == state.currentFriend.id) {
+        commit(SET_MESSAGES, [
+          ...state.messages,
+          {
+            id: Math.random()
+              .toString(36)
+              .substring(7),
+            fromId,
+            toId,
+            message
+          }
+        ]);
+      }
     }
   }
 });

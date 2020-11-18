@@ -29,3 +29,10 @@ export async function getUsers() {
   });
   return response.data;
 }
+
+export async function getMessages(forId) {
+  const response = await axios.get(`${baseUrl}/users/${forId}/messages`, {
+    headers: buildAuthHeader()
+  });
+  return response.data;
+}

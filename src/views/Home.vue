@@ -13,7 +13,7 @@
       </v-btn>
     </template>
     <template v-slot:nav>
-      <v-sheet color="grey lighten-4" class="pa-4">
+      <v-sheet color="lighten-4" class="pa-4">
         <v-avatar class="mb-4" color="grey darken-1" size="64">
           <span class="white--text headline">{{
             loading || !user ? ".." : user.nickname.slice(0, 2)
@@ -23,16 +23,46 @@
         <div>{{ user && user.nickname }}</div>
       </v-sheet>
       <v-list shaped>
-        <v-list-item v-for="friend in friends" :key="friend.id" link>
-          <v-list-item-content
-            @click="() => $router.push(`/home/${friend.nickname}`)"
-          >
-            <v-list-item-title>{{ friend.nickname }}</v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
+        <v-list-item-group value="currentFriend.id">
+          <v-list-item v-for="friend in friends" :key="friend.id" link>
+            <v-list-item-content @click="handleFriendChange(friend)">
+              <v-list-item-title>{{ friend.nickname }}</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list-item-group>
       </v-list>
     </template>
-    <div v-if="$route.params.nickname == null">Select a User to Chat</div>
+    <div v-if="this.currentFriend == null">
+      <v-container>Select a User to Chat</v-container>
+    </div>
+    <v-container v-else class="pa-0" :style="`position: absolute; bottom: 0`">
+      <v-row class="align-self-end">
+        <v-col>
+          <div
+            :class="
+              `ma-6 d-flex ${
+                message.toId == currentFriend.id ? 'flex-row-reverse' : ''
+              }`
+            "
+            v-for="message in messages"
+            :key="message.id"
+          >
+            <v-sheet outlined class="d-inline pa-2">
+              {{ message.message }}
+            </v-sheet>
+          </div>
+        </v-col>
+      </v-row>
+      <v-footer ref="messageInput">
+        <v-textarea
+          v-model="inputMessage"
+          rows="1"
+          auto-grow
+          append-outer-icon="mdi-send"
+          @click:append-outer="handleSendMessage"
+        ></v-textarea>
+      </v-footer>
+    </v-container>
   </app-layout>
 </template>
 
@@ -44,34 +74,62 @@ import { io } from "socket.io-client";
 let socket;
 
 export default {
+  data() {
+    return {
+      inputMessage: ""
+    };
+  },
   components: { AppLayout },
   computed: {
-    ...mapState(["user", "loading", "friends"])
+    ...mapState(["user", "loading", "friends", "currentFriend", "messages"])
   },
   methods: {
-    ...mapActions(["logout", "loadFriends"]),
+    ...mapActions(["logout", "loadFriends", "loadMessages", "addMessage"]),
     handleLogout() {
       this.logout();
       this.$router.push("/login");
+    },
+    handleFriendChange(friend) {
+      if (!this.currentFriend || this.currentFriend.id !== friend.id) {
+        this.$router.push(`/home/${friend.nickname}`);
+        this.loadMessages(friend);
+      }
+    },
+    handleSendMessage() {
+      this.sendMessage(this.currentFriend.id, this.inputMessage);
+      this.inputMessage = "";
     },
     setupSocket() {
       socket = io(process.env.VUE_APP_API_BASE, {
         query: `token=${this.user.jwt}`
       });
 
-      socket.on("reciveMessage", ({ from, message }) =>
-        console.log(from, message)
+      socket.on("receiveMessage", ({ from, message }) =>
+        this.addMessage({
+          from,
+          message,
+          to: this.user.to
+        })
       );
     },
-    sentMessage(to, message) {
-      var message = $inputMessage.val();
-      // tell server to execute 'new message' and send along one parameter
+    sendMessage(to, message) {
       socket.emit("addMessage", { to, message });
+      this.addMessage({
+        from: this.user.id,
+        to,
+        message
+      });
     }
   },
-  created() {
-    this.loadFriends();
-    this.handleSocket();
+  async created() {
+    await this.loadFriends();
+    this.setupSocket();
+    if (this.$route.params.nickname) {
+      const currentFriend = this.friends.find(
+        friend => friend.nickname == this.$route.params.nickname
+      );
+      this.loadMessages(currentFriend);
+    }
   },
   name: "Home"
 };

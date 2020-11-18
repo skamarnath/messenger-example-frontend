@@ -9,9 +9,7 @@
     <v-navigation-drawer v-model="drawer" app>
       <slot name="nav"></slot>
     </v-navigation-drawer>
-    <v-container>
-      <slot></slot>
-    </v-container>
+    <slot></slot>
   </base-layout>
 </template>
 
