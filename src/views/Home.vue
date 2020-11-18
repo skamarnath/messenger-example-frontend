@@ -41,6 +41,8 @@ import AppLayout from "../components/AppLayout.vue";
 import { mapActions, mapState } from "vuex";
 import { io } from "socket.io-client";
 
+let socket;
+
 export default {
   components: { AppLayout },
   computed: {
@@ -52,10 +54,19 @@ export default {
       this.logout();
       this.$router.push("/login");
     },
-    handleSocket() {
-      const socket = io(process.env.VUE_APP_API_BASE, {
+    setupSocket() {
+      socket = io(process.env.VUE_APP_API_BASE, {
         query: `token=${this.user.jwt}`
       });
+
+      socket.on("reciveMessage", ({ from, message }) =>
+        console.log(from, message)
+      );
+    },
+    sentMessage(to, message) {
+      var message = $inputMessage.val();
+      // tell server to execute 'new message' and send along one parameter
+      socket.emit("addMessage", { to, message });
     }
   },
   created() {
